@@ -147,6 +147,42 @@ st.markdown("""
             margin: 0.25rem 0;
         }
     }
+
+    /* Copy notification styling */
+    .copy-tooltip {
+        position: absolute;
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        margin-left: 10px;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .copy-tooltip.show {
+        opacity: 1;
+    }
+
+    .copy-button-container {
+        display: inline-flex;
+        align-items: center;
+        position: relative;
+    }
+
+    .copy-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: #4CAF50;
+        cursor: pointer;
+        padding: 0.25rem 0;
+    }
+
+    .copy-button:hover {
+        color: #69DB7C;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -239,10 +275,20 @@ def main():
                 
                 st.code(response["command"], language="batch")
                 
+                # Updated copy button with inline tooltip
                 st.markdown(f"""
-                    <button class="copy-button" onclick="navigator.clipboard.writeText('{response["command"]}')">
-                        📋 Copy command
-                    </button>
+                    <div class="copy-button-container">
+                        <button class="copy-button" onclick="
+                            navigator.clipboard.writeText('{response["command"]}');
+                            this.nextElementSibling.classList.add('show');
+                            setTimeout(() => {{
+                                this.nextElementSibling.classList.remove('show');
+                            }}, 2000);
+                        ">
+                            📋 Copy command
+                        </button>
+                        <span class="copy-tooltip">Copied!</span>
+                    </div>
                     <h3 style='color: white;'>Explanation:</h3>
                 """, unsafe_allow_html=True)
                 
