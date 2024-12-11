@@ -237,6 +237,8 @@ def main():
         - Be specific in your questions
         - Questions can be in natural language
         - Commands are provided with detailed explanations
+        - If you receive an error please adjust your question and try again
+
         """)
 
     # Main content with adjusted layout
