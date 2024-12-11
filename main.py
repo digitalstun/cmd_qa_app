@@ -1,17 +1,22 @@
 import os
+import streamlit as st
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify
 import re
 
-app = Flask(__name__, template_folder='templates')
+# Configure page settings
+st.set_page_config(
+    page_title="Windows Command Helper",
+    page_icon="💻",
+    layout="wide"
+)
 
-# Configure Gemini API key (replace with your actual key)
+# Configure Gemini API key
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # Model configuration
 generation_config = {
-    "temperature": 0.7,  # Adjust for creativity vs. accuracy
-    "max_output_tokens": 512,  # Limit response length
+    "temperature": 0.7,
+    "max_output_tokens": 512,
     "response_mime_type": "text/plain",
 }
 
@@ -23,7 +28,6 @@ def get_gemini_response(question):
         modified_question = f"""Answer this question for the Windows command line, prioritizing command-line solutions first, then providing alternative methods.  Return the command as the first line, followed by the explanation and alternative methods.: {question}"""
         response = chat_session.send_message(modified_question)
         text = response.text
-        # More robust regex to handle variations in response format, including backticks
         match = re.search(r"(?:```batch)?\s*(.*?)\s*(?:```)?\n(.*)", text, re.DOTALL | re.IGNORECASE)
         if match:
             command = match.group(1).strip()
@@ -34,16 +38,28 @@ def get_gemini_response(question):
     except Exception as e:
         return {"command": None, "explanation": f"Error: {e}"}
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+def main():
+    st.title("Windows Command Helper")
+    st.write("Ask a question about Windows commands, and I'll help you find the answer!")
 
-@app.route("/ask", methods=["POST"])
-def ask():
-    data = request.get_json()
-    query = data["query"]
-    response = get_gemini_response(query)
-    return jsonify(response)
+    # Create a text input for the user's question
+    user_question = st.text_input("Enter your question:")
+
+    # Add a submit button
+    if st.button("Get Answer") and user_question:
+        # Show a spinner while processing
+        with st.spinner("Getting response..."):
+            response = get_gemini_response(user_question)
+
+        # Display the response in separate sections
+        if response["command"]:
+            st.subheader("Command:")
+            st.code(response["command"], language="batch")
+            
+            st.subheader("Explanation:")
+            st.write(response["explanation"])
+        else:
+            st.error(response["explanation"])
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
