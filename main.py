@@ -14,40 +14,49 @@ st.set_page_config(
 # Custom CSS for responsive design
 st.markdown("""
     <style>
-    /* Main container padding */
+    /* Main container padding - ensure enough space at top */
     .main .block-container {
-        padding: 1rem !important;
+        padding: 2rem 1rem 1rem 1rem !important;
         max-width: 100% !important;
     }
     
-    /* App header/title container */
+    /* App header/title container - improve visibility */
     .app-header {
-        padding: 0 1rem;
-        margin-bottom: 1rem;
+        padding: 1.5rem;
+        margin: 0 0 1rem 0;
         background-color: #1E1E1E;
         border-radius: 10px;
+        width: 100%;
+        display: block;
     }
     
+    /* Title styling - ensure full visibility */
     .app-title {
         color: white !important;
         font-size: 2rem !important;
         font-weight: bold !important;
         margin: 0 !important;
-        padding: 1rem 0 !important;
+        padding: 0 !important;
+        line-height: 1.4 !important;
     }
     
-    /* Fix for title emoji alignment */
+    /* Title container span - improve emoji alignment */
     .app-title span {
         display: inline-flex !important;
         align-items: center !important;
         gap: 0.5rem !important;
+        vertical-align: middle !important;
+    }
+
+    /* Ensure emoji is properly aligned */
+    .app-title span img {
+        vertical-align: middle !important;
     }
     
-    /* Title styling */
-    .stTitle {
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.2 !important;
+    /* Remove default Streamlit container padding that might affect title */
+    .element-container:first-child {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
     }
     
     /* Custom container adjustments */
@@ -198,10 +207,12 @@ def main():
     col1, col2, col3 = st.columns([1, 8, 1])
     
     with col2:
-        # Updated title section
+        # Updated title markup with better structure
         st.markdown("""
         <div class="app-header">
-            <h1 class="app-title"><span>🖥️ Windows Command Helper</span></h1>
+            <div class="app-title">
+                <span>🖥️ Windows Command Helper</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
