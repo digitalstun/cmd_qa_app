@@ -110,19 +110,24 @@ def main():
                 st.code(response["command"], language="batch")
                 
                 # Updated copy button with inline tooltip
+                copy_button_key = f"copy_button_{response['command']}"
+                if st.button("📋 Copy command", key=copy_button_key):
+                    st.session_state[f"copied_{copy_button_key}"] = True
+                    st.session_state[f"show_tooltip_{copy_button_key}"] = True
+                    
+                if st.session_state.get(f"show_tooltip_{copy_button_key}", False):
+                    st.markdown("<span class='copy-tooltip show'>Copied!</span>", unsafe_allow_html=True)
+                    
+                    st.session_state[f"show_tooltip_{copy_button_key}"] = False
+                    
+                    import time
+                    time.sleep(2)
+                    
+                    st.session_state[f"copied_{copy_button_key}"] = False
+                    
+                
+                
                 st.markdown(f"""
-                    <div class="copy-button-container">
-                        <button class="copy-button" onclick="
-                            navigator.clipboard.writeText('{response["command"]}');
-                            this.nextElementSibling.classList.add('show');
-                            setTimeout(() => {{
-                                this.nextElementSibling.classList.remove('show');
-                            }}, 2000);
-                        ">
-                            📋 Copy command
-                        </button>
-                        <span class="copy-tooltip">Copied!</span>
-                    </div>
                     <h3 style='color: white;'>Explanation:</h3>
                 """, unsafe_allow_html=True)
                 
