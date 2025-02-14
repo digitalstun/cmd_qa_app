@@ -30,15 +30,40 @@ generation_config = {
 
 model = genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
 
+# Network command templates and security patterns
+NETWORK_COMMAND_TEMPLATES = {
+    "ip_config": "ipconfig /all",
+    "port_scan": "Test-NetConnection -ComputerName {target} -Port {port}",
+    "dns_check": "Resolve-DnsName {hostname}",
+    "traceroute": "tracert {target}"
+}
+
+SAFE_INPUT_REGEX = r"^[a-zA-Z0-9\-\.\:\/\s]{1,100}$"
+
 def get_gemini_response(question):
     try:
+        # Validate input for network commands
+        if not re.match(SAFE_INPUT_REGEX, question):
+            return {"command": None, "explanation": "Invalid input detected. Only alphanumeric characters and common network symbols allowed."}
+            
         chat_session = model.start_chat()
-        modified_question = f"""Answer this question for the Windows command line, prioritizing command-line solutions first, then providing alternative methods. Return the command as the first line WITHOUT any backticks or code formatting, followed by the explanation and alternative methods.: {question}"""
+        
+        # Enhanced prompt with network command context
+        modified_question = f"""For Windows network/IP commands: {question}
+        - Prioritize PowerShell over CMD
+        - Include security warnings for dangerous commands
+        - Suggest alternative GUI tools where applicable
+        Format: [Command]\n[Explanation]\n[Security Note]\n[Alternatives]"""
+        
         response = chat_session.send_message(modified_question)
         text = response.text
         
-        # Updated regex to better handle command extraction
-        match = re.search(r"^([^`\n]+)(?:\n|$)(.*)", text.lstrip(), re.DOTALL)
+        # Enhanced parsing for network commands
+        match = re.search(
+            r"^((?:[A-Za-z0-9\-_]+\.exe\s)?[^\n`]+)(?:\n+)(.*?)(?:\n+Security Note:\s*(.*?))?(?:\n+Alternatives:\s*(.*))?$",
+            text.lstrip(),
+            re.DOTALL
+        )
         if match:
             command = match.group(1).strip()
             explanation = match.group(2).strip()
@@ -56,20 +81,25 @@ def main():
         st.header("📖 How to Use")
         st.markdown("""
         ### Quick Start Guide
-        1. Type your Windows command-related question in the input box
-        2. Press Enter or click 'Get Answer' to submit
-        3. View the command and its explanation
+        1. Type your Windows command or network-related question
+        2. For network commands, include parameters like:
+           - IP addresses (192.168.1.1)
+           - Hostnames (example.com)
+           - Port numbers (80, 443)
+        3. Press Enter or click 'Get Answer' to submit
+        4. Review command with security warnings
         
-        ### Example Questions
-        - How do I list all files in a directory?
-        - How can I find large files on my system?
-        - How do I check my IP address?
+        ### Example Network Questions
+        - How to scan open ports on 192.168.1.100?
+        - What's the DNS record for api.example.com?
+        - Trace route to 8.8.8.8
+        - Check firewall rules for port 3389
         
-        ### Tips
-        - Be specific in your questions
-        - Questions can be in natural language
-        - Commands are provided with detailed explanations
-        - If you receive an error please adjust your question and try again
+        ### Security Tips
+        - Validate commands before execution
+        - Use dedicated network testing environments
+        - Avoid sharing sensitive IP/host information
+        - Monitor network changes carefully
 
         """)
 
