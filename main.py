@@ -284,17 +284,17 @@ def create_remote_management_tab():
     
     with col1:
         remote_host = st.text_input(
-            "Remote Host",
+            label="Remote Host",
             key="remote_host",
             help="Enter the hostname or IP address"
         )
         username = st.text_input(
-            "Username",
+            label="Username",
             key="remote_username",
             help="Enter the remote system username"
         )
         password = st.text_input(
-            "Password",
+            label="Password",
             type="password",
             key="remote_password",
             help="Enter the remote system password"
@@ -506,8 +506,8 @@ def create_command_search():
     search_term = st.sidebar.text_input(
         label="Search Commands",
         key="command_search",
-        help="Enter keywords to search commands",
-        placeholder="Search commands..."
+        placeholder="Search commands...",
+        help="Enter keywords to search commands"
     )
 
 def create_troubleshooting_workflow():
@@ -575,7 +575,7 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
-            # Fix: Add label and hide it
+            # Fix: Add proper label and hide it
             user_question = st.text_input(
                 label="Command Input",  # Add label
                 key="question_input",
