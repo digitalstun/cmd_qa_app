@@ -16,6 +16,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import time
+import webbrowser
+from pathlib import Path
 
 # Try to import winrm, but don't fail if it's not available
 WINRM_AVAILABLE = False
@@ -281,9 +283,22 @@ def create_remote_management_tab():
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        remote_host = st.text_input("Remote Host")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+        remote_host = st.text_input(
+            "Remote Host",
+            key="remote_host",
+            help="Enter the hostname or IP address"
+        )
+        username = st.text_input(
+            "Username",
+            key="remote_username",
+            help="Enter the remote system username"
+        )
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="remote_password",
+            help="Enter the remote system password"
+        )
         
     with col2:
         remote_commands = {
@@ -425,7 +440,117 @@ def create_system_monitor():
             st.error(f"Monitoring error: {str(e)}")
             st.session_state.monitoring = False
 
+def create_help_system():
+    st.sidebar.markdown("---")
+    st.sidebar.header("📚 Documentation")
+    
+    help_sections = {
+        "Getting Started": "getting-started",
+        "Command Assistant": "command-assistant",
+        "Diagnostic Tools": "diagnostic-report",
+        "Remote Management": "remote-management",
+        "AD Management": "active-directory-management",
+        "Network Tools": "network-topology",
+        "System Monitor": "system-monitor",
+        "Security Best Practices": "security-notes",
+        "Troubleshooting": "troubleshooting"
+    }
+    
+    selected_section = st.sidebar.selectbox(
+        "Help Topics",
+        list(help_sections.keys())
+    )
+    
+    if selected_section:
+        section_id = help_sections[selected_section]
+        docs_path = Path("docs/user_guide.md")
+        
+        if st.sidebar.button("Open Documentation"):
+            if docs_path.exists():
+                with docs_path.open() as f:
+                    content = f.read()
+                    st.sidebar.markdown(content)
+            else:
+                st.sidebar.error("Documentation file not found!")
+
+def add_command_favorites():
+    if 'favorites' not in st.session_state:
+        st.session_state.favorites = []
+    
+    def add_to_favorites(command, explanation):
+        if command not in [f['command'] for f in st.session_state.favorites]:
+            st.session_state.favorites.append({
+                'command': command,
+                'explanation': explanation,
+                'added_on': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+    
+    def show_favorites():
+        if st.session_state.favorites:
+            for fav in st.session_state.favorites:
+                with st.expander(f"⭐ {fav['command'][:40]}..."):
+                    st.code(fav['command'], language="batch")
+                    st.write(fav['explanation'])
+                    if st.button("Remove", key=f"remove_{fav['command'][:20]}"):
+                        st.session_state.favorites.remove(fav)
+                        st.experimental_rerun()
+        else:
+            st.info("No favorite commands yet!")
+    
+    return add_to_favorites, show_favorites
+
+def create_command_search():
+    st.sidebar.markdown("---")
+    st.sidebar.header("🔍 Command Search")
+    
+    search_term = st.sidebar.text_input(
+        label="Search Commands",
+        key="command_search",
+        help="Enter keywords to search commands",
+        placeholder="Search commands..."
+    )
+
+def create_troubleshooting_workflow():
+    st.header("🔄 Automated Troubleshooting")
+    
+    workflows = {
+        "Network Connectivity": [
+            {"command": "ipconfig /all", "description": "Check network configuration"},
+            {"command": "ping 8.8.8.8", "description": "Test internet connectivity"},
+            {"command": "nslookup google.com", "description": "Test DNS resolution"},
+            {"command": "tracert 8.8.8.8", "description": "Check network path"}
+        ],
+        "System Performance": [
+            {"command": "tasklist", "description": "List running processes"},
+            {"command": "wmic cpu get loadpercentage", "description": "Check CPU usage"},
+            {"command": "wmic memorychip get capacity", "description": "Check memory"},
+            {"command": "wmic diskdrive get status", "description": "Check disk health"}
+        ],
+        "Service Issues": [
+            {"command": "net start", "description": "List running services"},
+            {"command": "sc query", "description": "Check service status"},
+            {"command": "eventvwr.msc", "description": "Check event logs"},
+            {"command": "dism /online /cleanup-image /scanhealth", "description": "Check system health"}
+        ]
+    }
+    
+    workflow = st.selectbox("Select Troubleshooting Workflow", list(workflows.keys()))
+    
+    if workflow:
+        steps = workflows[workflow]
+        for i, step in enumerate(steps, 1):
+            with st.expander(f"Step {i}: {step['description']}"):
+                st.code(step['command'], language="batch")
+                if st.button(f"Run Step {i}"):
+                    st.info(f"Command copied: {step['command']}")
+                    # Save to history
+                    save_command_history(step['command'], step['description'])
+
 def main():
+    # Get favorites functions first
+    add_to_favorites, show_favorites = add_command_favorites()
+    
+    # Create tabs after getting the functions
     tabs = st.tabs([
         "Command Assistant", 
         "Diagnostic Report", 
@@ -433,7 +558,8 @@ def main():
         "Remote Management",
         "AD Management",
         "Network Topology",
-        "System Monitor"
+        "System Monitor",
+        "Favorites"
     ])
     
     with tabs[0]:
@@ -449,11 +575,13 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
+            # Fix: Add label and hide it
             user_question = st.text_input(
-                "",
+                label="Command Input",  # Add label
                 key="question_input",
                 placeholder="Ask a question about Windows commands...",
                 help="Press Enter or click 'Get Answer' to submit",
+                label_visibility="collapsed"  # Hide the label but keep it accessible
             )
 
             submit_button = st.button("Get Answer")
@@ -497,6 +625,13 @@ def main():
                     
                     # Save to command history
                     save_command_history(response["command"], response["explanation"])
+                    
+                    # Add favorite button
+                    col1, col2 = st.columns([6, 1])
+                    with col2:
+                        if st.button("⭐ Favorite"):
+                            add_to_favorites(response["command"], response["explanation"])
+                            st.success("Added to favorites!")
     
     with tabs[1]:
         create_diagnostic_report()
@@ -515,6 +650,15 @@ def main():
     
     with tabs[6]:
         create_system_monitor()
+    
+    # Add new Favorites tab
+    with tabs[7]:
+        st.header("⭐ Favorite Commands")
+        show_favorites()  # Now this will work because we have the function
+
+    create_help_system()
+    create_command_search()
+    create_troubleshooting_workflow()
 
 if __name__ == "__main__":
     main()
