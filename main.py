@@ -112,13 +112,21 @@ st.markdown("""
         padding: 5px;
         background: #2E7D32;
         border-radius: 4px;
-        transition: opacity 0.3s;
     }
-    .copy-tooltip.show {
-        opacity: 1;
+    .custom-container {
+        background-color: #1E1E1E;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 10px 0;
     }
-    .copy-tooltip.hide {
-        opacity: 0;
+    .app-header {
+        text-align: center;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    .app-title {
+        font-size: 2rem;
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -200,10 +208,33 @@ def show_command_history():
     
     st.subheader("📜 Command History")
     
-    for entry in reversed(st.session_state.command_history):
-        with st.expander(f"{entry['timestamp']} - {entry['command'][:40]}..."):
-            st.code(entry['command'], language="batch")
-            st.write(entry['explanation'])
+    col1, col2 = st.columns([4, 1])
+    
+    with col1:
+        if st.session_state.command_history:
+            for entry in reversed(st.session_state.command_history):
+                with st.expander(f"{entry['timestamp']} - {entry['command'][:40]}..."):
+                    st.code(entry['command'], language="batch")
+                    st.write(entry['explanation'])
+        else:
+            st.info("No commands in history yet. Try running some commands!")
+    
+    with col2:
+        if st.session_state.command_history:
+            if st.button("Export History"):
+                history_text = "\n\n".join([
+                    f"Time: {entry['timestamp']}\nCommand: {entry['command']}\nExplanation: {entry['explanation']}"
+                    for entry in st.session_state.command_history
+                ])
+                st.download_button(
+                    "Download History",
+                    history_text,
+                    "command_history.txt",
+                    "text/plain"
+                )
+            if st.button("Clear History"):
+                st.session_state.command_history = []
+                st.experimental_rerun()
 
 def generate_diagnostic_commands():
     return {
@@ -307,7 +338,6 @@ def create_ad_management():
 def create_network_topology():
     st.subheader("🌐 Network Topology Visualizer")
     
-    # Network discovery commands
     discovery_commands = {
         "ARP Table": "arp -a",
         "Network Interfaces": "Get-NetAdapter | Select-Object Name,Status,LinkSpeed",
@@ -315,33 +345,45 @@ def create_network_topology():
         "Routing Table": "Get-NetRoute | Select-Object DestinationPrefix,NextHop,RouteMetric"
     }
     
-    if st.button("Discover Network"):
-        # Create a network graph
-        G = nx.Graph()
-        
-        # Add nodes and edges based on network discovery
-        # This is a placeholder - you'd need to parse actual network data
-        G.add_node("Local PC")
-        G.add_node("Gateway")
-        G.add_edge("Local PC", "Gateway")
-        
-        # Draw the network graph
-        plt.figure(figsize=(10, 8))
-        nx.draw(G, with_labels=True, node_color='lightblue', 
-                node_size=1500, font_size=10, font_weight='bold')
-        
-        # Display in Streamlit
-        st.pyplot(plt)
-        
-        # Show discovery commands
+    col1, col2 = st.columns([2, 3])
+    
+    with col1:
+        st.markdown("### Network Discovery Commands")
         for name, command in discovery_commands.items():
             with st.expander(name):
                 st.code(command, language="powershell")
+                if st.button(f"Copy {name} Command", key=f"copy_{name}"):
+                    st.success("Command copied!")
+    
+    with col2:
+        st.markdown("### Network Visualization")
+        if st.button("Generate Network Map"):
+            try:
+                G = nx.Graph()
+                
+                # Add example network structure
+                G.add_node("Local PC", type="computer")
+                G.add_node("Gateway", type="router")
+                G.add_node("Internet", type="cloud")
+                G.add_edge("Local PC", "Gateway")
+                G.add_edge("Gateway", "Internet")
+                
+                plt.figure(figsize=(10, 8))
+                pos = nx.spring_layout(G)
+                nx.draw(G, pos, with_labels=True, 
+                       node_color='lightblue',
+                       node_size=2000, 
+                       font_size=10, 
+                       font_weight='bold')
+                
+                st.pyplot(plt)
+                plt.close()
+            except Exception as e:
+                st.error(f"Error generating network map: {str(e)}")
 
 def create_system_monitor():
     st.subheader("📊 System Health Monitor")
     
-    # Monitor categories
     monitor_commands = {
         "CPU Usage": "Get-Counter '\\Processor(_Total)\\% Processor Time'",
         "Memory Usage": "Get-Counter '\\Memory\\Available MBytes'",
@@ -356,21 +398,32 @@ def create_system_monitor():
         selected_metrics = st.multiselect("Select Metrics", list(monitor_commands.keys()))
     
     with col2:
-        if st.button("Start Monitoring"):
-            placeholder = st.empty()
+        if 'monitoring' not in st.session_state:
+            st.session_state.monitoring = False
             
-            while True:
-                metrics_data = {}
-                for metric in selected_metrics:
-                    # In practice, you'd execute the commands and parse results
-                    metrics_data[metric] = random.random() * 100  # Placeholder data
-                
-                # Update the display
-                with placeholder.container():
-                    for metric, value in metrics_data.items():
+        if st.button("Start Monitoring" if not st.session_state.monitoring else "Stop Monitoring"):
+            st.session_state.monitoring = not st.session_state.monitoring
+    
+    placeholder = st.empty()
+    
+    if st.session_state.monitoring and selected_metrics:
+        try:
+            metrics_data = {}
+            for metric in selected_metrics:
+                # Simulate metric collection
+                metrics_data[metric] = random.random() * 100
+            
+            with placeholder.container():
+                cols = st.columns(len(metrics_data))
+                for i, (metric, value) in enumerate(metrics_data.items()):
+                    with cols[i]:
                         st.metric(metric, f"{value:.2f}%")
-                
-                time.sleep(refresh_rate)
+                        st.code(monitor_commands[metric], language="powershell")
+            
+            time.sleep(refresh_rate)
+        except Exception as e:
+            st.error(f"Monitoring error: {str(e)}")
+            st.session_state.monitoring = False
 
 def main():
     tabs = st.tabs([
