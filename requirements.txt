@@ -1,3 +1,7 @@
 streamlit
 google-generativeai
-python-dotenv 
+python-dotenv
+networkx
+matplotlib
+# Optional dependencies
+# pywinrm  # Uncomment to enable remote management features 
